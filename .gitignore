@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+log/
+soundfiles/
+.vscode/
+kokoro-v1.0.onnx
+voices-v1.0.bin

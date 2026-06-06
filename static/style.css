@@ -1,0 +1,71 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    /* display: flex; */
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 60px;
+    background: linear-gradient(135deg, #3aeeb2, #ff6767);
+    font-family: Segoe UI, Arial;
+    color: white;
+}
+
+h1 {
+    margin-bottom: 10px;
+}
+
+p {
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+#mic {
+    font-size: 150px;
+    color: red;
+    margin: 20px;
+    transition: 0.2s;
+}
+
+#mic.recording {
+    color: limegreen;
+    transform: scale(1.15);
+}
+
+#output {
+    margin-top: 25px;
+    text-align: left;
+    background: rgba(3, 3, 3, 0.05);
+    padding: 15px;
+    border-radius: 10px;
+    min-height: 60px;
+}
+
+.card {
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 20px;
+    padding: 40px;
+    width: 650px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.graph-container {
+    width: 800px;
+    height: auto;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-top: 1%;
+    margin-right: auto;
+    margin-left: auto;
+    /* display: flex; */
+    /* justify-content: center; */
+}
