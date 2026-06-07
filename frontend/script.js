@@ -5,9 +5,6 @@ let audioContext;
 let analyser;
 let dataArray;
 
-// const canvas = document.getElementById("wave");
-// const ctx = canvas.getContext("2d");
-
 const micIcon = document.getElementById("mic");
 const output = document.getElementById("output");
 const ws = new WebSocket(`ws://${window.location.host}/ws`);
@@ -39,7 +36,6 @@ ws.onclose = () => {
 async function initMic() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream);
-    // mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
     mediaRecorder.ondataavailable = async (e) => {
         if (e.data.size > 0) {
             audioChunks.push(e.data);
@@ -78,9 +74,7 @@ async function initMic() {
     analyser.fftSize = 2048;
     source.connect(analyser);
     dataArray = new Uint8Array(analyser.fftSize);
-    // drawWave();
 }
-
 
 initMic();
 
@@ -98,15 +92,6 @@ document.addEventListener("keyup", e => {
         micIcon.classList.remove("recording");
     }
 });
-function updateBars(values) {
-
-    values.forEach((v, i) => {
-
-        const bar = document.getElementById("bar" + (i + 1))
-        bar.style.height = (v * 200) + "px"
-
-    })
-}
 
 // BarChart
 const ctx = document.getElementById('barChart').getContext('2d');
@@ -168,4 +153,5 @@ const config = {
         }
     }
 };
+
 const myChart = new Chart(ctx, config);

@@ -1,8 +1,6 @@
 import numpy as np
-import soundfile as sf
 import torch
 import threading
-import simpleaudio as sa
 import time
 import os
 import asyncio
@@ -11,20 +9,20 @@ from utils import *
 from maai import Maai, MaaiInput
 from io import BytesIO
 from pydub import AudioSegment
-from fastapi import FastAPI, UploadFile, Request, BackgroundTasks,  WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, UploadFile, BackgroundTasks,  WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from faster_whisper import WhisperModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, Wav2Vec2FeatureExtractor, Wav2Vec2ForSequenceClassification, AutoModelForAudioClassification, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, Wav2Vec2FeatureExtractor, Wav2Vec2ForSequenceClassification, pipeline
 from kokoroTTS import *
 from ser import *
-from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from weakref import WeakSet
 
 
 torch.backends.cudnn.benchmark = True
 torch.set_grad_enabled(False)
+MAX_NEW_TOKENS = 128
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 whisper_model = WhisperModel("base.en", device=device, compute_type="float16")
@@ -164,12 +162,12 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
 
 @app.get("/")
 def index():
-    with open("./templates/index.html") as f:
+    with open("./frontend/index.html") as f:
         return HTMLResponse(f.read())
 
 
@@ -219,7 +217,7 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
 
     output = llm_model.generate( # type: ignore
         **inputs,
-        max_new_tokens=144
+        max_new_tokens=MAX_NEW_TOKENS
     )
 
     llm_gen_end_ts = time.time()
@@ -233,12 +231,11 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
 
     tts_start_ts = time.time()
     print("Assistant:", assistant_text)
+    conversation_history.append({"role": "assistant", "content": assistant_text})
 
     def safe_tts():
         with tts_lock:
             kokoro_tts_stream_split(assistant_text, voice="af_heart")
-            conversation_history.append(
-                {"role": "assistant", "content": assistant_text})
 
     background_tasks.add_task(safe_tts)
     tts_end_ts = time.time()

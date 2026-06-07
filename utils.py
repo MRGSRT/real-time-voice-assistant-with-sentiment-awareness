@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
 from typing import Optional
 
+
 def fuse_emotions(text_emotions, audio_emotions, text_weight=0.7):
     if text_emotions == None or audio_emotions == []:
         return "neutral", 1, None
@@ -94,6 +95,7 @@ class Timestamps:
             "tts_time_ms": (self.tts_end - self.tts_start) * 1000,
         }
 
+
 @dataclass
 class EmotionData:
     current_text_emotion: Optional[str] = None
@@ -103,6 +105,7 @@ class EmotionData:
     current_audio_emotion: Optional[str] = None
     current_audio_emotion_list: Optional[list] = None
 
+
 @dataclass
 class LogEntry:
     message: str
@@ -110,6 +113,7 @@ class LogEntry:
     timestamps: Timestamps
     emotions: EmotionData
     bc_prob: Optional[list[float]] = None
+
 
 def log_data(file_name: str, entry: LogEntry):
     os.makedirs(file_name, exist_ok=True)

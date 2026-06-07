@@ -98,7 +98,6 @@ def kokoro_tts_stream_split(text: str,
         stream.close()
     p.terminate()
 
-    
 
 if __name__ == "__main__":
     audio_file = kokoro_tts(
@@ -109,21 +108,3 @@ if __name__ == "__main__":
         voice="af_heart",
         out_path="test.wav"
     )
-    # kokoro_tts_stream(
-    #     "I am the bone of my sword. Steel is my body and fire is my blood. I have created over a thousand blades. Unknown to death, Nor known to life. Have withstood pain to create many weapons. Yet, those hands will never hold anything. So, as I pray— Unlimited Blade Works.",
-    #     # "Right",
-    #     voice="af_heart",
-    # )
-
-    # kokoro_tts_stream(
-    #     # "I am the bone of my sword. Steel is my body and fire is my blood. I have created over a thousand blades. Unknown to death, Nor known to life. Have withstood pain to create many weapons. Yet, those hands will never hold anything. So, as I pray— Unlimited Blade Works.",
-    #     "Oh no. Yeah. Okay. Damn son, where'd you find this. aha. mhm. ugh. eww",
-    #     # "Oh no? Oh no; Oh no: Oh no, Oh no. Oh no- Oh no() Oh no'",
-    #     voice="af_heart"
-    # )
-    # kokoro_tts_stream(
-    #     # "I am the bone of my sword. Steel is my body and fire is my blood. I have created over a thousand blades. Unknown to death, Nor known to life. Have withstood pain to create many weapons. Yet, those hands will never hold anything. So, as I pray— Unlimited Blade Works.",
-    #     # "Oh no. Yeah. Okay. Damn son, where'd you find this. aha. mhm. ugh. eww",
-    #     "Oh no? Oh no; Oh no: Oh no, Oh no. Oh no- Oh no() Oh no'",
-    #     voice="af_heart"
-    # )
