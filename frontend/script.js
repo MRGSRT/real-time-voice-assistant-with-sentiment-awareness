@@ -4,10 +4,18 @@ let audioChunks = [];
 let audioContext;
 let analyser;
 let dataArray;
+let stream;
+
+// audio output
+let queue = [];
+let playing = false;
+let audioCtx = new AudioContext({ sampleRate: 24000 });
 
 const micIcon = document.getElementById("mic");
 const output = document.getElementById("output");
 const ws = new WebSocket(`ws://${window.location.host}/ws`);
+const wsAudio = new WebSocket(`ws://${window.location.host}/ws_audio`);
+const wsTTS = new WebSocket(`ws://${window.location.host}/ws_tts`);
 
 ws.onopen = () => {
     console.log("WebSocket connected");
@@ -32,6 +40,77 @@ ws.onmessage = (event) => {
 ws.onclose = () => {
     console.log("WebSocket disconnected");
 };
+
+wsAudio.onopen = async () => {
+    console.log("wsAudio connected");
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioContext = new AudioContext({ sampleRate: 16000 });
+    await audioContext.audioWorklet.addModule("/frontend/worklet-processor.js");
+    const source = audioContext.createMediaStreamSource(stream);
+    const workletNode = new AudioWorkletNode(audioContext, "pcm-processor");
+    source.connect(workletNode);
+    workletNode.connect(audioContext.destination);
+
+    workletNode.port.onmessage = (event) => {
+        if (wsAudio.readyState !== 1) return;
+        const float32 = event.data;
+        wsAudio.send(float32.buffer);
+    };
+};
+
+let nextTime = 0;
+
+wsTTS.onmessage = async (event) => {
+    const buffer = await event.data.arrayBuffer();
+    if (buffer.byteLength % 4 !== 0) return;
+    const chunk = new Float32Array(buffer);
+
+    if (chunk.length < 32) return;
+    queue.push(chunk);
+
+    if (!playing) playNext();
+};
+
+async function playNext() {
+    playing = true;
+
+    nextTime = Math.max(audioCtx.currentTime, nextTime);
+
+    while (queue.length > 0) {
+        const chunk = queue.shift();
+
+        const buffer = audioCtx.createBuffer(
+            1,
+            chunk.length,
+            audioCtx.sampleRate
+        );
+
+        buffer.copyToChannel(chunk, 0);
+
+        const source = audioCtx.createBufferSource();
+        const gain = audioCtx.createGain();
+
+        source.buffer = buffer;
+        source.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+        const start = Math.max(now, nextTime);
+
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(1.0, start + 0.003);
+        gain.gain.linearRampToValueAtTime(1.0, start + buffer.duration - 0.003);
+        gain.gain.linearRampToValueAtTime(0.0001, start + buffer.duration);
+
+        source.start(start);
+
+        nextTime = start + buffer.duration;
+
+        await new Promise(r => source.onended = r);
+    }
+
+    playing = false;
+}
 
 async function initMic() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });

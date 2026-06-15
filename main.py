@@ -18,7 +18,10 @@ from kokoroTTS import *
 from ser import *
 from contextlib import asynccontextmanager
 from weakref import WeakSet
+import queue
 
+
+audio_queue = queue.Queue()
 
 torch.backends.cudnn.benchmark = True
 torch.set_grad_enabled(False)
@@ -96,8 +99,9 @@ def run_bc_pred():
     global last_play_time
     global loop
 
-    mic = MaaiInput.Mic()
+    mic = WebSocketMic(audio_queue)
     zero = MaaiInput.Zero()
+
 
     maai = Maai(
         mode="bc",
@@ -235,7 +239,11 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
 
     def safe_tts():
         with tts_lock:
-            kokoro_tts_stream_split(assistant_text, voice="af_heart")
+            # kokoro_tts_stream_split(assistant_text, voice="af_heart")
+            ws = app.state.tts_ws
+            if ws is None:
+                return
+            stream_tts_to_browser(assistant_text, ws, loop, voice="af_heart", chunk_size=2048)
 
     background_tasks.add_task(safe_tts)
     tts_end_ts = time.time()
@@ -347,3 +355,27 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         clients.discard(websocket)
+
+
+@app.websocket("/ws_audio")
+async def ws_audio(websocket: WebSocket):
+    await websocket.accept()
+
+    try:
+        while True:
+            data = await websocket.receive_bytes()
+            audio_queue.put(data)
+
+    except Exception as e:
+        print("ws_audio error:", e)
+
+@app.websocket("/ws_tts")
+async def ws_tts(websocket: WebSocket):
+    await websocket.accept()
+    websocket.app.state.tts_ws = websocket
+
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        websocket.app.state.tts_ws = None
