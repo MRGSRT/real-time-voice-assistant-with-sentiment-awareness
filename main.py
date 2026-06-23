@@ -393,6 +393,7 @@ async def ws_audio(websocket: WebSocket):
     except Exception as e:
         print("ws_audio error:", e)
 
+
 @app.websocket("/ws_tts")
 async def ws_tts(websocket: WebSocket):
     await websocket.accept()
