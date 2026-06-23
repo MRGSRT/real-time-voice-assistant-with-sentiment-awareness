@@ -4,7 +4,9 @@ import simpleaudio as sa
 import json
 import os
 import numpy as np
+import threading
 
+from maai import MaaiInput
 from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
 from typing import Optional
@@ -136,3 +138,27 @@ def log_data(file_name: str, entry: LogEntry):
 
     with open(os.path.join(file_name, "timestamp.json"), "w") as f:
         json.dump(data, f, indent=4)
+
+
+# 
+class WebSocketMic(MaaiInput.Base):
+    def __init__(self, q):
+        super().__init__()
+        self.q = q
+        self.buffer = np.zeros(0, dtype=np.float32)
+
+    def start(self):
+        threading.Thread(target=self._process, daemon=True).start()
+
+    def _process(self):
+        while True:
+            data = self.q.get()
+            chunk = np.frombuffer(data, dtype=np.float32)
+
+            self.buffer = np.concatenate([self.buffer, chunk])
+
+            while len(self.buffer) >= self.FRAME_SIZE:
+                frame = self.buffer[:self.FRAME_SIZE]
+                self.buffer = self.buffer[self.FRAME_SIZE:]
+
+                self._put_to_all_queues(frame.tolist())
