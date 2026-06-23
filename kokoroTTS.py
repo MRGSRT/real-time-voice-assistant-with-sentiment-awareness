@@ -9,7 +9,7 @@ from timeit import default_timer as timer
 
 
 def kokoro_tts(text: str, 
-               voice: str = "af_jessica", 
+               voice: str = "af_heart", 
                out_path: str = "output.wav",
                model_path: str = "kokoro-v1.0.onnx",
                voices_path: str = "voices-v1.0.bin"):
@@ -21,7 +21,7 @@ def kokoro_tts(text: str,
 
 
 def kokoro_tts_stream(text: str, 
-                      voice: str = "af_jessica",
+                      voice: str = "af_heart",
                       model_path: str = "kokoro-v1.0.onnx",
                       voices_path: str = "voices-v1.0.bin",
                       chunk_size = 1024
@@ -56,7 +56,7 @@ def kokoro_tts_stream(text: str,
 
 
 def kokoro_tts_stream_split(text: str, 
-                            voice: str = "af_jessica",
+                            voice: str = "af_heart",
                             model_path: str = "kokoro-v1.0.onnx",
                             voices_path: str = "voices-v1.0.bin",
                             chunk_size = 1024
@@ -101,35 +101,25 @@ def kokoro_tts_stream_split(text: str,
     p.terminate()
 
 
-def stream_tts_to_browser(text: str,
+def tts_to_browser(text: str,
                           websocket,
                           loop,
-                          voice: str = "af_jessica",
+                          voice: str = "af_heart",
                           model_path: str = "kokoro-v1.0.onnx",
                           voices_path: str = "voices-v1.0.bin",
                           chunk_size = 1024,
                         ):
     kokoro = Kokoro(model_path, voices_path)
 
-    arr_text = [t.strip() for t in text.split(".") if t.strip()]
-    
-    for sentence in arr_text:
-        samples, sample_rate = kokoro.create(sentence, voice=voice)
-        samples = np.array(samples, dtype=np.float32)
-
-        for i in range(0, len(samples), chunk_size):
-            chunk = samples[i:i + chunk_size]
-            if len(chunk) == 0:
-                continue
-            chunk = np.asarray(chunk, dtype=np.float32)
-
-            try:
-                asyncio.run_coroutine_threadsafe(
-                    websocket.send_bytes(chunk.tobytes()),
-                    loop
-                )
-            except:
-                return
+    sample, sample_rate= kokoro.create(text, voice=voice)
+    sample = np.array(sample, dtype=np.float32)
+    try:
+        asyncio.run_coroutine_threadsafe(
+            websocket.send_bytes(sample.tobytes()),
+            loop
+        )
+    except:
+        return
 
 
 if __name__ == "__main__":

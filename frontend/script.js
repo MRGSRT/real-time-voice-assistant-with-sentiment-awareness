@@ -58,58 +58,54 @@ wsAudio.onopen = async () => {
     };
 };
 
-let nextTime = 0;
 
 wsTTS.onmessage = async (event) => {
     const buffer = await event.data.arrayBuffer();
-    if (buffer.byteLength % 4 !== 0) return;
-    const chunk = new Float32Array(buffer);
+    const msg = new Float32Array(buffer);
 
-    if (chunk.length < 32) return;
-    queue.push(chunk);
+    queue.push(msg);
 
     if (!playing) playNext();
 };
 
 async function playNext() {
-    playing = true;
-
-    nextTime = Math.max(audioCtx.currentTime, nextTime);
-
-    while (queue.length > 0) {
-        const chunk = queue.shift();
-
-        const buffer = audioCtx.createBuffer(
-            1,
-            chunk.length,
-            audioCtx.sampleRate
-        );
-
-        buffer.copyToChannel(chunk, 0);
-
-        const source = audioCtx.createBufferSource();
-        const gain = audioCtx.createGain();
-
-        source.buffer = buffer;
-        source.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        const now = audioCtx.currentTime;
-        const start = Math.max(now, nextTime);
-
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.linearRampToValueAtTime(1.0, start + 0.003);
-        gain.gain.linearRampToValueAtTime(1.0, start + buffer.duration - 0.003);
-        gain.gain.linearRampToValueAtTime(0.0001, start + buffer.duration);
-
-        source.start(start);
-
-        nextTime = start + buffer.duration;
-
-        await new Promise(r => source.onended = r);
+    if (queue.length === 0) {
+        playing = false;
+        return;
     }
 
-    playing = false;
+    playing = true;
+
+    const msg = queue.shift();
+
+    const audioBuffer = audioCtx.createBuffer(
+        1,
+        msg.length,
+        audioCtx.sampleRate
+    );
+
+    audioBuffer.copyToChannel(msg, 0);
+
+    const source = audioCtx.createBufferSource();
+    const gain = audioCtx.createGain();
+
+    source.buffer = audioBuffer;
+
+    source.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const start = audioCtx.currentTime;
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.linearRampToValueAtTime(1.0, start + 0.003);
+    gain.gain.linearRampToValueAtTime(1.0, start + audioBuffer.duration - 0.003);
+    gain.gain.linearRampToValueAtTime(0.0001, start + audioBuffer.duration);
+
+    source.start();
+
+    source.onended = () => {
+        playNext();
+    };
 }
 
 async function initMic() {
@@ -163,6 +159,11 @@ document.addEventListener("keydown", e => {
         mediaRecorder.start();
         micIcon.classList.add("recording");
     }
+    sendMicState({
+        type: "mic",
+        state: "start",
+        ts: Date.now()
+    });
 });
 
 document.addEventListener("keyup", e => {
@@ -170,7 +171,20 @@ document.addEventListener("keyup", e => {
         mediaRecorder.stop();
         micIcon.classList.remove("recording");
     }
+    sendMicState({
+        type: "mic",
+        state: "stop",
+        ts: Date.now()
+    });
 });
+
+
+function sendMicState(msg) {
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(msg));
+    }
+}
+
 
 // BarChart
 const ctx = document.getElementById('barChart').getContext('2d');
