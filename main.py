@@ -71,6 +71,8 @@ global_cd = 5
 last_play_time = 0
 tts_lock = threading.Lock()
 
+push2talk = False
+
 bc_prob_result = []
 bc_lock = threading.Lock()
 bc_thread = None
@@ -132,7 +134,10 @@ def run_bc_pred():
 def bc_trigger(result):
     global last_play_time
     now = time.time()
-    if result['p_bc'] >= 0.6 and now - last_play_time >= global_cd and not tts_lock.locked():
+    if (result['p_bc'] >= 0.6 
+        and now - last_play_time >= global_cd 
+        and not tts_lock.locked() 
+        and push2talk):
         last_play_time = now
         # uhhuh, yeah, okay, right
         bc_utterance = np.random.choice(bc_categories, p=bc_probabilities)
@@ -243,7 +248,7 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
             ws = app.state.tts_ws
             if ws is None:
                 return
-            stream_tts_to_browser(assistant_text, ws, loop, voice="af_heart", chunk_size=2048)
+            tts_to_browser(assistant_text, ws, loop, chunk_size=2048)
 
     background_tasks.add_task(safe_tts)
     tts_end_ts = time.time()
@@ -347,12 +352,31 @@ async def broadcast(data):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    global push2talk
     await websocket.accept()
 
     clients.add(websocket)
     try:
         while True:
-            await websocket.receive_text()
+            data = await websocket.receive_text()
+
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError:
+                continue
+
+            msg_type = msg.get("type")
+            state = msg.get("state")
+
+            if msg_type == "mic" and state == "start":
+                if push2talk:
+                    continue
+                push2talk = True
+
+            elif msg_type == "mic" and state == "stop":
+                if not push2talk:
+                    continue
+                push2talk = False
     except WebSocketDisconnect:
         clients.discard(websocket)
 
