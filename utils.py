@@ -28,8 +28,10 @@ def fuse_emotions(text_emotions, audio_emotions, text_weight=0.7):
         t_label = audio_to_text_map.get(a_label)
         if t_label:
             audio_aligned[t_label] = score
+
     fused_scores = {}
     audio_weight = 1.0 - text_weight
+
     for item in text_emotions:
         label = item["label"]
         text_score = item["score"]
@@ -40,9 +42,69 @@ def fuse_emotions(text_emotions, audio_emotions, text_weight=0.7):
             # fallback: text only
             fused_scores[label] = text_score
 
-    sorted_scores = sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
+    sorted_scores = sorted(
+        fused_scores.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
     final_label, final_score = sorted_scores[0]
-    
+
+    return final_label, final_score, fused_scores
+
+
+def fuse_selected_emotions(text_emotions, audio_emotions, text_weight=0.7, allowed_emotions={
+    "neutral",
+    "surprise",
+    "joy",
+    "sadness"
+}):
+    if text_emotions is None or audio_emotions == []:
+        return "neutral", 1, None
+
+    audio_to_text_map = {
+        "neu": "neutral",
+        "hap": "joy",
+        "ang": "anger",
+        "sad": "sadness"
+    }
+
+    text_emotions = text_emotions[0]
+    audio_aligned = {}
+    for a_label, score in audio_emotions.items():
+        t_label = audio_to_text_map.get(a_label)
+        if t_label:
+            audio_aligned[t_label] = score
+
+    fused_scores = {}
+    audio_weight = 1.0 - text_weight
+
+    for item in text_emotions:
+        label = item["label"]
+        text_score = item["score"]
+
+        if label in audio_aligned:
+            audio_score = audio_aligned[label]
+            fused_scores[label] = (text_weight * text_score + audio_weight * audio_score)
+        else:
+            # fallback: text only
+            fused_scores[label] = text_score
+
+    # keep only desired emotions
+    fused_scores = {
+        label: score
+        for label, score in fused_scores.items()
+        if label in allowed_emotions
+    }
+
+    sorted_scores = sorted(
+        fused_scores.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    final_label, final_score = sorted_scores[0]
+
     return final_label, final_score, fused_scores
 
 

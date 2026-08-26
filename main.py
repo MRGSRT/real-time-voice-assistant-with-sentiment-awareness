@@ -67,7 +67,7 @@ if not os.path.exists(folder_path):
 conversation_history = []
 
 
-global_cd = 5
+global_cd = 2
 last_play_time = 0
 tts_lock = threading.Lock()
 
@@ -134,7 +134,7 @@ def run_bc_pred():
 def bc_trigger(result):
     global last_play_time
     now = time.time()
-    if (result['p_bc'] >= 0.6 
+    if (result['p_bc'] >= 0.6
         and now - last_play_time >= global_cd 
         and not tts_lock.locked() 
         and push2talk):
@@ -144,10 +144,10 @@ def bc_trigger(result):
 
         # weighted current_text_emotion current_audio_emotion
         try:
-            label, score, all_scores = fuse_emotions(
+            label, score, all_scores = fuse_selected_emotions(
                 current_text_emotion_list, current_audio_emotion_list[-1])
         except:
-            label, score, all_scores = fuse_emotions(
+            label, score, all_scores = fuse_selected_emotions(
                 current_text_emotion_list, [])
             
         soundfile = get_sound_file(soundfiles_dir, bc_utterance, label)
@@ -162,7 +162,7 @@ async def lifespan(app: FastAPI):
     global loop
 
     loop = asyncio.get_running_loop()
-
+    app.state.tts_ws = None
     app.state.bc_result = None
     bc_thread = threading.Thread(target=run_bc_pred, daemon=True)
     bc_thread.start()
@@ -244,11 +244,10 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
 
     def safe_tts():
         with tts_lock:
-            # kokoro_tts_stream_split(assistant_text, voice="af_heart")
             ws = app.state.tts_ws
             if ws is None:
                 return
-            tts_to_browser(assistant_text, ws, loop, chunk_size=2048)
+            tts_to_browser(assistant_text, ws, loop)
 
     background_tasks.add_task(safe_tts)
     tts_end_ts = time.time()

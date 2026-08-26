@@ -10,6 +10,7 @@ let stream;
 let queue = [];
 let playing = false;
 let audioCtx = new AudioContext({ sampleRate: 24000 });
+let isRecording = false;
 
 const micIcon = document.getElementById("mic");
 const output = document.getElementById("output");
@@ -54,6 +55,9 @@ wsAudio.onopen = async () => {
     workletNode.port.onmessage = (event) => {
         if (wsAudio.readyState !== 1) return;
         const float32 = event.data;
+        if (!isRecording) {
+            float32 = new Float32Array(float32.length);
+        }
         wsAudio.send(float32.buffer);
     };
 };
@@ -155,6 +159,7 @@ initMic();
 
 document.addEventListener("keydown", e => {
     if (e.code === "Space" && mediaRecorder.state !== "recording") {
+        isRecording = true;
         audioChunks = [];
         mediaRecorder.start();
         micIcon.classList.add("recording");
@@ -168,6 +173,7 @@ document.addEventListener("keydown", e => {
 
 document.addEventListener("keyup", e => {
     if (e.code === "Space" && mediaRecorder.state === "recording") {
+        isRecording = false;
         mediaRecorder.stop();
         micIcon.classList.remove("recording");
     }
@@ -187,64 +193,64 @@ function sendMicState(msg) {
 
 
 // BarChart
-const ctx = document.getElementById('barChart').getContext('2d');
+// const ctx = document.getElementById('barChart').getContext('2d');
 
-const data = {
-    labels: ['Backchannel Prediction [%]'],
-    datasets: [{
-        label: 'Score',
-        data: [0],
-        backgroundColor: 'rgba(0, 255, 136, 0.7)',
-        borderColor: 'rgba(0, 255, 136, 1)',
-        borderWidth: 1,
-        borderRadius: 6,
-        maxBarThickness: 60
-    }]
-};
+// const data = {
+//     labels: ['Backchannel Prediction [%]'],
+//     datasets: [{
+//         label: 'Score',
+//         data: [0],
+//         backgroundColor: 'rgba(0, 255, 136, 0.7)',
+//         borderColor: 'rgba(0, 255, 136, 1)',
+//         borderWidth: 1,
+//         borderRadius: 6,
+//         maxBarThickness: 60
+//     }]
+// };
 
-const config = {
-    type: 'bar',
-    data: data,
-    options: {
-        indexAxis: 'y',
+// const config = {
+//     type: 'bar',
+//     data: data,
+//     options: {
+//         indexAxis: 'y',
 
-        responsive: true,
-        plugins: {
-            legend: { display: false },
+//         responsive: true,
+//         plugins: {
+//             legend: { display: false },
 
-            annotation: {
-                annotations: {
-                    thresholdLine: {
-                        type: 'line',
-                        xMin: 60,
-                        xMax: 60,
-                        borderColor: 'rgb(255, 233, 33)',
-                        borderWidth: 2,
-                        label: {
-                            display: true,
-                            content: 'Threshold',
-                            position: 'start',
-                            color: 'rgb(255, 246, 162)'
-                        }
-                    }
-                }
-            }
-        },
+//             annotation: {
+//                 annotations: {
+//                     thresholdLine: {
+//                         type: 'line',
+//                         xMin: 60,
+//                         xMax: 60,
+//                         borderColor: 'rgb(255, 233, 33)',
+//                         borderWidth: 2,
+//                         label: {
+//                             display: true,
+//                             content: 'Threshold',
+//                             position: 'start',
+//                             color: 'rgb(255, 246, 162)'
+//                         }
+//                     }
+//                 }
+//             }
+//         },
 
-        scales: {
-            x: {
-                min: 0,
-                max: 100,
-                ticks: {
-                    color: '#fff',
-                    stepSize: 20
-                }
-            },
-            y: {
-                ticks: { color: '#fff' }
-            }
-        }
-    }
-};
+//         scales: {
+//             x: {
+//                 min: 0,
+//                 max: 100,
+//                 ticks: {
+//                     color: '#fff',
+//                     stepSize: 20
+//                 }
+//             },
+//             y: {
+//                 ticks: { color: '#fff' }
+//             }
+//         }
+//     }
+// };
 
-const myChart = new Chart(ctx, config);
+// const myChart = new Chart(ctx, config);
