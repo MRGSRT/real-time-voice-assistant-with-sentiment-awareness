@@ -107,7 +107,6 @@ def tts_to_browser(text: str,
                           voice: str = "af_heart",
                           model_path: str = "kokoro-v1.0.onnx",
                           voices_path: str = "voices-v1.0.bin",
-                          chunk_size = 1024,
                         ):
     kokoro = Kokoro(model_path, voices_path)
 
