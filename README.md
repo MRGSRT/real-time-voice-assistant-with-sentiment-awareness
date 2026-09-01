@@ -27,6 +27,8 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
+Note: If you encounter issues related to PyTorch + CUDA, try installing PyTorch manually first, then retry installing the dependencies.
+
 ## 2b. Anaconda (Windows only atm)
 
 Create the Conda environment from the provided `environment.yml` file:
