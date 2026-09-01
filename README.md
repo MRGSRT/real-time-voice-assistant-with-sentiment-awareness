@@ -48,6 +48,7 @@ https://drive.google.com/drive/folders/1MC5wk1NOjvKKmPrqHvtwzbTy8ruUtef2?usp=sha
 
 This is how it should look like:
 
+```text
 ├── frontend/
 ├── models/
 ├── soundfiles/
@@ -69,6 +70,7 @@ This is how it should look like:
 ├── requirements.txt
 ├── utils.py
 └── voices-v1.0.bin
+```
 
 ## Start Application
 
