@@ -242,24 +242,24 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
     print("Assistant:", assistant_text)
     conversation_history.append({"role": "assistant", "content": assistant_text})
 
+    formatted_ts = convert_unix_ts(audio_received_start_ts)
+    file_name = os.path.join(folder_path, f"MSG_{formatted_ts}.log")
+
     def safe_tts():
         with tts_lock:
             ws = app.state.tts_ws
             if ws is None:
                 return
-            tts_to_browser(assistant_text, ws, loop)
+            tts_to_browser(assistant_text, ws, loop, file_name)
 
     background_tasks.add_task(safe_tts)
-    tts_end_ts = time.time()
-    formatted_ts = convert_unix_ts(audio_received_start_ts)
-
+    
     # Text Sentiment/Emotion Analysis
     new_text_emotion_list = detect_text_emotion(text)
 
     # trim conv history
     if len(conversation_history) > MAX_LLM_TURN_HISTORY:
         conversation_history = conversation_history[-MAX_LLM_TURN_HISTORY:]
-    file_name = os.path.join(folder_path, f"MSG_{formatted_ts}.log")
 
     os.makedirs(file_name)
     with bc_lock:
@@ -276,7 +276,7 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
         llm_gen_start=llm_gen_start_ts,
         llm_gen_end=llm_gen_end_ts,
         tts_start=tts_start_ts,
-        tts_end=tts_end_ts
+        tts_end=0
     )
 
     emotions = EmotionData(

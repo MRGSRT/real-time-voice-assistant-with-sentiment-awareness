@@ -3,6 +3,9 @@ import soundfile as sf
 import pyaudio
 import asyncio
 import time
+import re
+import json
+import os
 
 from kokoro_onnx import Kokoro
 from timeit import default_timer as timer
@@ -104,21 +107,39 @@ def kokoro_tts_stream_split(text: str,
 def tts_to_browser(text: str,
                           websocket,
                           loop,
+                          file_name,
                           voice: str = "af_heart",
                           model_path: str = "kokoro-v1.0.onnx",
                           voices_path: str = "voices-v1.0.bin",
                         ):
     kokoro = Kokoro(model_path, voices_path)
-
-    sample, sample_rate= kokoro.create(text, voice=voice)
-    sample = np.array(sample, dtype=np.float32)
-    try:
+    
+    tts_end_ts = 0
+    sentences = [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", text.strip())
+        if sentence.strip()
+    ]
+    
+    for sentence in sentences:
+        sample, sample_rate = kokoro.create(sentence, voice=voice)
+        sample = np.array(sample, dtype=np.float32)
         asyncio.run_coroutine_threadsafe(
             websocket.send_bytes(sample.tobytes()),
             loop
-        )
-    except:
-        return
+        ).result()
+        print("Sent audio bytes")
+        if tts_end_ts == 0:
+            tts_end_ts = time.time()
+            file_path = os.path.join(file_name, "timestamp.json")
+            with open(file_path, "r") as f:
+                data = json.load(f)
+            data["tts_end_ts"] = tts_end_ts
+            data["tts_time_ms"] = (
+                tts_end_ts - data["tts_start_ts"]
+            ) * 1000
+            with open(file_path, "w") as f:
+                json.dump(data, f, indent=4)
 
 
 if __name__ == "__main__":
