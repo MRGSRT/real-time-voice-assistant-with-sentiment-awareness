@@ -137,7 +137,7 @@ def run_bc_pred():
 def bc_trigger(result):
     global last_play_time
     now = time.time()
-    if (result['p_bc'] >= 0.6
+    if (result['p_bc'] >= 0.2
         and now - last_play_time >= global_cd 
         and not tts_lock.locked() 
         and push2talk):
@@ -164,7 +164,8 @@ def bc_trigger(result):
         bc_sound_history.append({
             "soundfile": soundfile,
             "timestamp": sound_ts,
-            "datetime": datetime.fromtimestamp(sound_ts).isoformat()
+            "datetime": datetime.fromtimestamp(sound_ts).isoformat(),
+            "bc_prob": result['p_bc']
         })
 
 
