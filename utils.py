@@ -179,8 +179,8 @@ class LogEntry:
     bc_prob: Optional[list[float]] = None
 
 
-def log_data(file_name: str, entry: LogEntry):
-    os.makedirs(file_name, exist_ok=True)
+def log_data(file_dir: str, entry: LogEntry):
+    os.makedirs(file_dir, exist_ok=True)
 
     data = {
         "message": entry.message,
@@ -198,7 +198,7 @@ def log_data(file_name: str, entry: LogEntry):
         "tts_end_ts": entry.timestamps.tts_end,
     }
 
-    with open(os.path.join(file_name, "timestamp.json"), "w") as f:
+    with open(os.path.join(file_dir, "timestamp.json"), "w") as f:
         json.dump(data, f, indent=4)
 
 

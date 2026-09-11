@@ -66,6 +66,8 @@ if not os.path.exists(folder_path):
     os.makedirs(folder_path)
 conversation_history = []
 
+# bc sound tracking
+bc_sound_history = []
 
 global_cd = 2
 last_play_time = 0
@@ -122,7 +124,8 @@ def run_bc_pred():
         ts = time.time()
 
         with bc_lock:
-            bc_prob_result.append((ts, result["p_bc"]))
+            bc_prob_result.append((ts, result["p_bc"], 
+                                   datetime.fromtimestamp(ts).isoformat()))
             bc_trigger(result)
             if len(bc_prob_result) > MAX_HISTORY:
                 bc_prob_result.pop(0)
@@ -151,9 +154,18 @@ def bc_trigger(result):
                 current_text_emotion_list, [])
             
         soundfile = get_sound_file(soundfiles_dir, bc_utterance, label)
+        sound_ts = time.time()
         if soundfile != None:
             threading.Thread(target=play_sound, args=(
                 soundfile,), daemon=True).start()
+        else:
+            print(f"No Soundfiles found.")
+
+        bc_sound_history.append({
+            "soundfile": soundfile,
+            "timestamp": sound_ts,
+            "datetime": datetime.fromtimestamp(sound_ts).isoformat()
+        })
 
 
 @asynccontextmanager
@@ -193,6 +205,9 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
 
     duration = len(audio_segment) / 1000.0
     audio_received_start_ts = audio_received_end_ts - duration
+
+    formatted_ts = convert_unix_ts(audio_received_start_ts)
+    file_dir = os.path.join(folder_path, f"MSG_{formatted_ts}.log")
 
     samples = np.array(audio_segment.get_array_of_samples()).astype(np.float32)
     samples /= np.iinfo(audio_segment.array_type).max
@@ -242,15 +257,12 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
     print("Assistant:", assistant_text)
     conversation_history.append({"role": "assistant", "content": assistant_text})
 
-    formatted_ts = convert_unix_ts(audio_received_start_ts)
-    file_name = os.path.join(folder_path, f"MSG_{formatted_ts}.log")
-
     def safe_tts():
         with tts_lock:
             ws = app.state.tts_ws
             if ws is None:
                 return
-            tts_to_browser(assistant_text, ws, loop, file_name)
+            tts_to_browser(assistant_text, ws, loop, file_dir)
 
     background_tasks.add_task(safe_tts)
     
@@ -261,10 +273,10 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
     if len(conversation_history) > MAX_LLM_TURN_HISTORY:
         conversation_history = conversation_history[-MAX_LLM_TURN_HISTORY:]
 
-    os.makedirs(file_name)
+    os.makedirs(file_dir)
     with bc_lock:
         bc_prob = [
-            value for (ts, value) in bc_prob_result
+            value for (ts, value, ts_str) in bc_prob_result
             if audio_received_start_ts <= ts <= audio_received_end_ts
         ]
 
@@ -295,13 +307,23 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
         emotions=emotions,
         bc_prob=bc_prob,
     )
-    log_data(file_name, entry)
+    log_data(file_dir, entry)
     
-    audio_segment.export(os.path.join(file_name, ".wav"), format="wav")
+    audio_segment.export(os.path.join(file_dir, ".wav"), format="wav")
 
     # update current emotion
     current_text_emotion = new_text_emotion
     current_text_emotion_list = new_text_emotion_list
+
+    # save bc sounds
+    with open(os.path.join(file_dir, "bc_sounds.json"), "w") as f:
+        json.dump(bc_sound_history, f, indent=2, ensure_ascii=False)
+    bc_sound_history.clear()
+
+    with open(os.path.join(file_dir, "bc_prob.json"), "w") as f:
+        json.dump(bc_prob_result, f, indent=2, ensure_ascii=False)
+    bc_prob_result.clear()
+
     return {"transcript": text, "response": assistant_text}
 
 
