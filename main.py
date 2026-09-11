@@ -137,7 +137,7 @@ def run_bc_pred():
 def bc_trigger(result):
     global last_play_time
     now = time.time()
-    if (result['p_bc'] >= 0.2
+    if (result['p_bc'] >= 0.6
         and now - last_play_time >= global_cd 
         and not tts_lock.locked() 
         and push2talk):
