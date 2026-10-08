@@ -216,10 +216,10 @@ async def receive_audio(file: UploadFile, background_tasks: BackgroundTasks):
     # transcribe
     transcription_start_ts = time.time()
     segments, _ = whisper_model.transcribe(samples, beam_size=10) # type: ignore
-    transcription_end_ts = time.time()
     text = "".join(seg.text for seg in segments)
     print(text)
-
+    transcription_end_ts = time.time()
+    
     # generate output
     conversation_history.append({"role": "user", "content": text})
     try:
